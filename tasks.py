@@ -16,7 +16,7 @@ apps = [
     {"id": "galene", "name": "visio"},
     {"id": "hedgedoc", "name": "pad"},
     {"id": "ackee", "name": "stats"},
-    {"id": "dolibarr-wrap", "name": "dolibarr"},
+    {"id": "dolibarr", "name": "dolibarr"},
     {"id": "etherpad-lite", "name": "pad2"},
 ]
 

@@ -69,8 +69,11 @@ def deploy(c: Context):
     deployment = {"site": sites}
     Path("/tmp/nua-deployment.json").write_text(json.dumps(deployment, indent=2))
 
-    sh(f"rsync -az /tmp/nua-deployment.json root@{host}:/tmp/nua-deployment.json")
-    ssh(f"/home/nua/nua310/bin/nua-orchestrator deploy /tmp/nua-deployment.json")
+    if host == "localhost":
+        sh(f"/home/nua/nua310/bin/nua-orchestrator deploy /tmp/nua-deployment.json")
+    else:
+        sh(f"rsync -az /tmp/nua-deployment.json root@{host}:/tmp/nua-deployment.json")
+        ssh(f"/home/nua/nua310/bin/nua-orchestrator deploy /tmp/nua-deployment.json")
 
 
 def build_app(app: dict[str, str]):
@@ -78,8 +81,12 @@ def build_app(app: dict[str, str]):
     app_id = app["id"]
     cwd = f"{apps_root}"
     print(f"Building {app_id}...")
-    sh(f"rsync -e ssh -avz ./{app_id} nua@{host}:/tmp/nua-apps/", cwd=cwd)
-    ssh(f"/home/nua/nua310/bin/nua-build /tmp/nua-apps/{app_id}")
+    if host == "localhost":
+        sh(f"/home/nua/nua310/bin/nua-build ./{app_id}", cwd=cwd)
+    else:
+        sh(f"rsync -e ssh -az ./{app_id} nua@{host}:/tmp/nua-apps/", cwd=cwd)
+        ssh(f"/home/nua/nua310/bin/nua-build /tmp/nua-apps/{app_id}")
+
     # sh(f"nua-build .", cwd=cwd)
     print()
 

@@ -4,8 +4,7 @@ import json
 import os
 import shlex
 import subprocess
-import sys
-import tomllib
+import toml as tomllib
 from pathlib import Path
 
 from invoke import task, Context

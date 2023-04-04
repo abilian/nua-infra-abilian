@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "nua-infra-abilian"
+version = "0.1.0"
+description = ""
+authors = ["Stefane Fermigier <sf@fermigier.com>"]
+#readme = "README.md"
+#packages = [{include = "nua_infra_abilian"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+invoke = "^2"
+
+# Not needed currently, as nua-build is only useful on the same machine
+# as the nua-orchestrator.
+# nua-build = { git = "https://github.com/abilian/nua.git", branch = "main", subdirectory = "nua-build" }
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

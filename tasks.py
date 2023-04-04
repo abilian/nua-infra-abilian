@@ -67,9 +67,9 @@ def deploy(c: Context):
         sites.append(app_deployment)
 
     deployment = {"site": sites}
-    Path("nua-deployment.json").write_text(json.dumps(deployment, indent=2))
+    Path("/tmp/nua-deployment.json").write_text(json.dumps(deployment, indent=2))
 
-    sh(f"rsync -az nua-deployment.json root@{host}:/tmp/nua-deployment.json")
+    sh(f"rsync -az /tmp/nua-deployment.json root@{host}:/tmp/nua-deployment.json")
     ssh(f"/home/nua/nua310/bin/nua-orchestrator deploy /tmp/nua-deployment.json")
 
 

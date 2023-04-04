@@ -7,7 +7,7 @@ authors = ["Stefane Fermigier <sf@fermigier.com>"]
 #packages = [{include = "nua_infra_abilian"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.9"
 
 invoke = "^2"
 

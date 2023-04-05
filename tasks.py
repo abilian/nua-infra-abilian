@@ -4,11 +4,11 @@ import json
 import os
 import shlex
 import subprocess
-import toml as tomllib
 from pathlib import Path
 
-from invoke import task, Context
+import toml as tomllib
 from dotenv import load_dotenv
+from invoke import Context, task
 
 load_dotenv()
 
@@ -75,12 +75,17 @@ def deploy(c: Context, apps=None, host="", domain="", apps_root=""):
     if engine.host == "localhost":
         sh(f"{NUA_ENV}/bin/nua-orchestrator deploy /tmp/nua-deployment.json")
     else:
-        sh(f"rsync -az /tmp/nua-deployment.json root@{engine.host}:/tmp/nua-deployment.json")
-        ssh(f"{NUA_ENV}/bin/nua-orchestrator deploy /tmp/nua-deployment.json", engine.host)
+        sh(
+            f"rsync -az /tmp/nua-deployment.json root@{engine.host}:/tmp/nua-deployment.json"
+        )
+        ssh(
+            f"{NUA_ENV}/bin/nua-orchestrator deploy /tmp/nua-deployment.json",
+            engine.host,
+        )
 
 
 class Engine:
-    def __init__(self, host: str="", domain: str="", apps_root: str=""):
+    def __init__(self, host: str = "", domain: str = "", apps_root: str = ""):
         if host:
             self.host = host
         else:
@@ -107,7 +112,6 @@ class Engine:
 
         # sh(f"nua-build .", cwd=cwd)
         print()
-
 
     def generate_deploy_config(self, app: dict[str, str]):
         """Generate a nua-deployment.json file for a single app."""

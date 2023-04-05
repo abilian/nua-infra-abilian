@@ -10,12 +10,13 @@ authors = ["Stefane Fermigier <sf@fermigier.com>"]
 python = "^3.9"
 
 invoke = "^2"
+toml = "^0.10.2"
+python-dotenv = "^1.0.0"
+
 
 # Not needed currently, as nua-build is only useful on the same machine
 # as the nua-orchestrator.
 # nua-build = { git = "https://github.com/abilian/nua.git", branch = "main", subdirectory = "nua-build" }
-toml = "^0.10.2"
-python-dotenv = "^1.0.0"
 
 
 [tool.poetry.group.dev.dependencies]

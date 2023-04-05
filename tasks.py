@@ -29,94 +29,105 @@ APPS = [
 ]
 # APPS = []
 
-DEFAULT_DOMAIN = "c17.abilian.com"
 DEFAULT_HOST = "c17.abilian.com"
+DEFAULT_DOMAIN = "c17.abilian.com"
 DEFAULT_APPS_ROOT = f"{os.getcwd()}/nua-apps"
 
-# Read environment variables
-domain = os.environ.get("NUA_DOMAIN", DEFAULT_DOMAIN)
-host = os.environ.get("NUA_HOST", DEFAULT_HOST)
-apps_root = os.environ.get("NUA_APPS_ROOT", DEFAULT_APPS_ROOT)
-
 
 @task
-def all(c: Context, apps=None):
+def all(c: Context, apps=None, host="", domain="", apps_root=""):
     """Build and deploy all apps."""
-    build(c, apps)
-    deploy(c, apps)
+    build(c, apps, host, domain, apps_root)
+    deploy(c, apps, host, domain, apps_root)
 
 
 @task
-def build(c: Context, apps=None):
+def build(c: Context, apps=None, host="", domain="", apps_root=""):
     """Build apps. Use --apps=app1,app2,... to only build selected apps."""
+    engine = Engine(host, domain, apps_root)
     if apps in ("all", None):
         for app in APPS:
-            build_app(app)
+            engine.build_app(app)
     else:
         app_ids = apps.split(",")
         for app_id in app_ids:
             app = get_app(app_id)
-            build_app(app)
+            engine.build_app(app)
 
 
 @task
-def deploy(c: Context, apps=None):
+def deploy(c: Context, apps=None, host="", domain="", apps_root=""):
     """Deploy all apps."""
+    engine = Engine(host, domain, apps_root)
     sites = []
     if apps in ("all", None):
         for app in APPS:
-            sites.append(generate_deploy_config(app))
+            sites.append(engine.generate_deploy_config(app))
     else:
         app_ids = apps.split(",")
         for app_id in app_ids:
             app = get_app(app_id)
-            sites.append(generate_deploy_config(app))
+            sites.append(engine.generate_deploy_config(app))
 
     deployment = {"site": sites}
     Path("/tmp/nua-deployment.json").write_text(json.dumps(deployment, indent=2))
 
-    if host == "localhost":
+    if engine.host == "localhost":
         sh(f"{NUA_ENV}/bin/nua-orchestrator deploy /tmp/nua-deployment.json")
     else:
-        sh(f"rsync -az /tmp/nua-deployment.json root@{host}:/tmp/nua-deployment.json")
-        ssh(f"{NUA_ENV}/bin/nua-orchestrator deploy /tmp/nua-deployment.json")
+        sh(f"rsync -az /tmp/nua-deployment.json root@{engine.host}:/tmp/nua-deployment.json")
+        ssh(f"{NUA_ENV}/bin/nua-orchestrator deploy /tmp/nua-deployment.json", engine.host)
 
 
-def build_app(app: str | dict[str, str]):
-    """Build a single app."""
-    app_name = app["name"]
-    cwd = f"{apps_root}"
-    print(f"Building {app_name}...")
-    if host == "localhost":
-        sh(f"{NUA_ENV}/bin/nua-build ./{app_name}", cwd=cwd)
-    else:
-        sh(f"rsync -e ssh -az ./{app_name} nua@{host}:/tmp/nua-apps/", cwd=cwd)
-        ssh(f"{NUA_ENV}/bin/nua-build /tmp/nua-apps/{app_name}")
+class Engine:
+    def __init__(self, host: str="", domain: str="", apps_root: str=""):
+        if host:
+            self.host = host
+        else:
+            self.host = os.environ.get("NUA_HOST", DEFAULT_HOST)
+        if domain:
+            self.domain = domain
+        else:
+            self.domain = os.environ.get("NUA_DOMAIN", self.host)
+        if apps_root:
+            self.apps_root = apps_root
+        else:
+            self.apps_root = os.environ.get("NUA_APPS_ROOT", DEFAULT_APPS_ROOT)
 
-    # sh(f"nua-build .", cwd=cwd)
-    print()
+    def build_app(self, app: str | dict[str, str]):
+        """Build a single app."""
+        app_name = app["name"]
+        cwd = f"{self.apps_root}"
+        print(f"Building {app_name}...")
+        if self.host == "localhost":
+            sh(f"{NUA_ENV}/bin/nua-build ./{app_name}", cwd=cwd)
+        else:
+            sh(f"rsync -e ssh -az ./{app_name} nua@{self.host}:/tmp/nua-apps/", cwd=cwd)
+            ssh(f"{NUA_ENV}/bin/nua-build /tmp/nua-apps/{app_name}", self.host)
+
+        # sh(f"nua-build .", cwd=cwd)
+        print()
 
 
-def generate_deploy_config(app: dict[str, str]):
-    """Generate a nua-deployment.json file for a single app."""
-    app_name = app["name"]
-    config_data = get_config(app_name)
-    app_id = tomllib.loads(config_data)["metadata"]["id"]
-    app_hostname = app.get("hostname", app_id)
-    app_domain = f"{app_hostname}.{domain}"
-    app_deployment = {
-        "image": app_id,
-        "domain": app_domain,
-    }
-    return app_deployment
+    def generate_deploy_config(self, app: dict[str, str]):
+        """Generate a nua-deployment.json file for a single app."""
+        app_name = app["name"]
+        config_data = self.get_config(app_name)
+        app_id = tomllib.loads(config_data)["metadata"]["id"]
+        app_hostname = app.get("hostname", app_id)
+        app_domain = f"{app_hostname}.{self.domain}"
+        app_deployment = {
+            "image": app_id,
+            "domain": app_domain,
+        }
+        return app_deployment
 
-
-def get_config(app_name):
-    config_file = Path(f"{apps_root}/{app_name}/nua-config.toml")
-    if not config_file.exists():
-        config_file = Path(f"{apps_root}/{app_name}/nua/nua-config.toml")
-    config_data = config_file.read_text()
-    return config_data
+    def get_config(self, app_name):
+        config_file = Path(f"{self.apps_root}/{app_name}/nua-config.toml")
+        if not config_file.exists():
+            config_file = Path(f"{self.apps_root}/{app_name}/nua/nua-config.toml")
+        config_data = config_file.read_text()
+        return config_data
 
 
 #
@@ -128,7 +139,7 @@ def sh(cmd: str, cwd: str = "."):
     subprocess.run(cmd, shell=True, cwd=cwd, check=True)
 
 
-def ssh(cmd: str):
+def ssh(cmd: str, host: str):
     """Run a ssh command."""
     print(f'{DIM}Running "{cmd}" on server...{RESET}')
     args = shlex.split(cmd)

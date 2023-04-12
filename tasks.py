@@ -108,7 +108,7 @@ class Engine:
             sh(f"{NUA_ENV}/bin/nua-build ./{app_name}", cwd=cwd)
         else:
             sh(f"rsync -e ssh -az ./{app_name} nua@{self.host}:/tmp/nua-apps/", cwd=cwd)
-            ssh(f"{NUA_ENV}/bin/nua-build /tmp/nua-apps/{app_name}", self.host)
+            ssh(f"{NUA_ENV}/bin/nua-build -vv /tmp/nua-apps/{app_name}", self.host)
 
         # sh(f"nua-build .", cwd=cwd)
         print()
@@ -116,8 +116,8 @@ class Engine:
     def generate_deploy_config(self, app: dict[str, str]):
         """Generate a nua-deployment.json file for a single app."""
         app_name = app["name"]
-        config_data = self.get_config(app_name)
-        app_id = tomllib.loads(config_data)["metadata"]["id"]
+        config = self.get_config(app_name)
+        app_id = config["metadata"]["id"]
         app_hostname = app.get("hostname", app_id)
         app_domain = f"{app_hostname}.{self.domain}"
         app_deployment = {
@@ -126,12 +126,12 @@ class Engine:
         }
         return app_deployment
 
-    def get_config(self, app_name):
+    def get_config(self, app_name) -> dict:
         config_file = Path(f"{self.apps_root}/{app_name}/nua-config.toml")
         if not config_file.exists():
             config_file = Path(f"{self.apps_root}/{app_name}/nua/nua-config.toml")
         config_data = config_file.read_text()
-        return config_data
+        return tomllib.loads(config_data)
 
 
 #
@@ -139,7 +139,7 @@ class Engine:
 #
 def sh(cmd: str, cwd: str = "."):
     """Run a shell command."""
-    print(f"{DIM}Running {cmd} in {cwd}...{RESET}")
+    print(f'{DIM}Running "{cmd}" locally in "{cwd}"...{RESET}')
     subprocess.run(cmd, shell=True, cwd=cwd, check=True)
 
 
